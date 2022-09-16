@@ -1,6 +1,5 @@
 package org.example.controllers;
 
-import org.example.services.QueueClientFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -8,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
@@ -22,14 +22,14 @@ import java.util.stream.Collectors;
 public class MessageController {
 
     @Autowired
-    private QueueClientFactory queueClientFactory;
+    private SqsClient sqsClient;
 
     private static final String QUEUE_PREFIX = "test-aws-api-";
     private static String queueUrl;
 
     @PostMapping("send")
     public void send(@RequestParam("queueUrl") String queueUrl, @RequestParam("message") String message) {
-        queueClientFactory.getClient().sendMessage(SendMessageRequest.builder()
+        sqsClient.sendMessage(SendMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .messageBody(message)
                 .delaySeconds(10)
@@ -43,7 +43,7 @@ public class MessageController {
                     .queueUrl(queueUrl)
                     .maxNumberOfMessages(5)
                     .build();
-            return queueClientFactory.getClient().receiveMessage(receiveMessageRequest).messages().stream()
+            return sqsClient.receiveMessage(receiveMessageRequest).messages().stream()
                     .map(Message::body)
                     .collect(Collectors.toList());
         } catch (SqsException e) {

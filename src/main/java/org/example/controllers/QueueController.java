@@ -1,10 +1,10 @@
 package org.example.controllers;
 
-import org.example.services.QueueClientFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
 import software.amazon.awssdk.services.sqs.model.DeleteQueueRequest;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
@@ -21,7 +21,7 @@ import java.util.List;
 public class QueueController {
 
     @Autowired
-    private QueueClientFactory queueClientFactory;
+    private SqsClient sqsClient;
 
     private static final String QUEUE_PREFIX = "test-aws-api-";
     private static String queueUrl;
@@ -32,7 +32,7 @@ public class QueueController {
                 .queueName(QUEUE_PREFIX + System.currentTimeMillis())
                 .build();
 
-        var response = queueClientFactory.getClient().createQueue(createQueueRequest);
+        var response = sqsClient.createQueue(createQueueRequest);
 
         return response.queueUrl();
     }
@@ -42,7 +42,7 @@ public class QueueController {
         ListQueuesRequest listQueuesRequest = ListQueuesRequest.builder()
                 .queueNamePrefix(QUEUE_PREFIX)
                 .build();
-        ListQueuesResponse listQueuesResponse = queueClientFactory.getClient().listQueues(listQueuesRequest);
+        ListQueuesResponse listQueuesResponse = sqsClient.listQueues(listQueuesRequest);
 
         return listQueuesResponse.queueUrls();
     }
@@ -51,7 +51,7 @@ public class QueueController {
     public String getQueueUrl(@PathParam("name") String name) {
         try {
             GetQueueUrlResponse getQueueUrlResponse =
-                    queueClientFactory.getClient().getQueueUrl(GetQueueUrlRequest.builder().queueName(name).build());
+                    sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(name).build());
             String queueUrl = getQueueUrlResponse.queueUrl();
             return queueUrl;
         } catch (SqsException e) {
@@ -68,13 +68,13 @@ public class QueueController {
                     .queueName(queueName)
                     .build();
 
-            String queueUrl = queueClientFactory.getClient().getQueueUrl(getQueueRequest).queueUrl();
+            String queueUrl = sqsClient.getQueueUrl(getQueueRequest).queueUrl();
 
             DeleteQueueRequest deleteQueueRequest = DeleteQueueRequest.builder()
                     .queueUrl(queueUrl)
                     .build();
 
-            queueClientFactory.getClient().deleteQueue(deleteQueueRequest);
+            sqsClient.deleteQueue(deleteQueueRequest);
 
             return true;
         } catch (SqsException e) {
